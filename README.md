@@ -1,7 +1,7 @@
-# Tauri + React + Typescript
+To start:
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+From inference-engine run:
+.\llama-server.exe -m E:\SecondBrain\ai-model\Ternary-Bonsai-27B-Q2_0.gguf -ngl 99 -c 8192 --parallel 1 --port 8080
 
-## Recommended IDE Setup
-
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+From second-brain:
+npm run tauri dev

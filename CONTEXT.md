@@ -24,9 +24,9 @@ running for the app to be fully useful.
 Speech takes this path:
 
 ```
-Mic button  →  webview records 16 kHz mono  →  raw bytes over IPC
-            →  speech_to_text.rs wraps them in a WAV header
-            →  POST /inference  →  the text lands in the composer
+Mic button  →  webview records 16 kHz mono  →  silence.ts hears it stop
+            →  raw bytes over IPC  →  speech_to_text.rs wraps them in a
+            WAV header  →  POST /inference  →  the text goes to the model
 ```
 
 The recording is made in the webview rather than in Rust, so the samples have
@@ -40,15 +40,30 @@ the wrong speed and comes back as garbled words.
 
 The whole utterance is transcribed at once, after the user stops talking,
 rather than streamed while they speak. Whisper reads half a minute of context
-at a time and is markedly worse on fragments.
+at a time and is markedly worse on fragments, so there is no preview of the
+words while they are being said — the box stays empty and the answer arrives
+instead.
 
-Push-to-talk is deliberate: the user marks the start and end, so there is no
-voice activity detection to get wrong, and none of Whisper's habit of
-hallucinating sentences out of silence.
+The user marks the start and the silence marks the end. Pressing Mic is the
+only control there is: a moment of speech arms the recording, a pause then ends
+it and sends what was said without asking, and a recording nobody speaks into
+closes itself having sent nothing. How long each of those is lives in
+`silence.ts`. An end that is detected rather than pressed is the step towards a
+wake word, which will move the microphone into Rust and take this decision with
+it.
+
+Whisper names the noises it hears that are not speech — `[BLANK_AUDIO]`,
+`(laughs)` — and `transcript` strips those names, because a recording that
+sends itself would otherwise ask them as questions. Only the brackets go: every
+word survives, including the ones either side of a noise.
 
 Known gaps, all deliberate: the Mic button reports no errors, so a failure is
-visible only in devtools; nothing filters the `[BLANK_AUDIO]` Whisper emits for
-a recording with no speech in it; and there is no request timeout.
+visible only in devtools; there is no request timeout; Whisper's occasional
+`*laughs*` spelling is not stripped; and the loudness that counts as speech is
+a fixed number, not calibrated against the room. A room noisier than that
+number never falls quiet enough to end a recording, and since nothing can stop
+one by hand and there is no maximum length, the microphone there listens until
+the app is restarted.
 
 ## How we work
 
@@ -142,6 +157,8 @@ would only pass with the model running, it does not belong here.
 
 ### What we test
 
-The backend only. The AI's behaviour and the commands the frontend calls are
-what matter; the frontend is a view and is not worth testing yet, so there is
-no JS test runner in the project on purpose.
+The backend, and any logic that ends up in the frontend. The AI's behaviour and
+the commands the frontend calls are what matter, and a view is still not worth
+testing — but deciding when somebody has stopped talking is not a view, so
+`silence.ts` is a pure function with its tests beside it. Vitest runs those:
+`npm test`, from the project root.

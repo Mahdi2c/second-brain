@@ -84,3 +84,27 @@ mod reading_the_reply {
         assert!(transcript(r#"{"error":"failed to load model"}"#).is_none());
     }
 }
+
+/// Whisper names the noises it hears that are not speech, in brackets. Now that
+/// a recording sends itself, those names would be asked as questions.
+mod non_speech {
+    use super::transcript;
+
+    #[test]
+    fn drops_a_recording_with_no_speech_in_it() {
+        assert_eq!(transcript(r#"{"text":"[BLANK_AUDIO]"}"#).as_deref(), Some(""));
+    }
+
+    #[test]
+    fn drops_the_other_noises_whisper_names() {
+        assert_eq!(transcript(r#"{"text":"(laughs)"}"#).as_deref(), Some(""));
+        assert_eq!(transcript(r#"{"text":"[ Silence ]"}"#).as_deref(), Some(""));
+        assert_eq!(transcript(r#"{"text":"[MUSIC] (coughs)"}"#).as_deref(), Some(""));
+    }
+
+    #[test]
+    fn keeps_the_words_said_around_a_noise() {
+        let said = transcript(r#"{"text":"[LAUGHTER] remind me to call Sarah"}"#);
+        assert_eq!(said.as_deref(), Some("remind me to call Sarah"));
+    }
+}

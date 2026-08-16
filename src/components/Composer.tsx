@@ -10,8 +10,7 @@ type Props = {
 
 export function Composer({ busy, onSend, onStop }: Props) {
   const [input, setInput] = useState("");
-  /** The function that ends the recording, and so also the fact there is one. */
-  const [recording, setRecording] = useState<(() => Promise<string>) | null>(null);
+  const [listening, setListening] = useState(false);
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -20,17 +19,15 @@ export function Composer({ busy, onSend, onStop }: Props) {
     setInput("");
   }
 
-  /** Starts the microphone, or stops it and puts what was said in the box. */
-  async function dictate() {
-    if (!recording) {
-      const finish = await record();
-      // Wrapped, or React would call it to compute the next state.
-      setRecording(() => finish);
-      return;
-    }
-
-    setRecording(null);
-    setInput(await recording());
+  /** Starts the microphone. Nothing stops it by hand; it ends itself. */
+  function dictate() {
+    setListening(true);
+    record((said) => {
+      setListening(false);
+      // Never through the box, so anything typed is left alone, and `send`
+      // already declines the empty string a silent recording gives.
+      onSend(said);
+    }).catch(() => setListening(false)); // or a mic that will not open sticks the button
   }
 
   return (
@@ -39,17 +36,19 @@ export function Composer({ busy, onSend, onStop }: Props) {
         value={input}
         onChange={(e) => setInput(e.currentTarget.value)}
         placeholder="Ask something..."
-        disabled={busy}
+        disabled={busy || listening}
       />
-      <button type="button" onClick={dictate} disabled={busy}>
-        {recording ? "Listening..." : "Mic"}
+      <button type="button" onClick={dictate} disabled={busy || listening}>
+        {listening ? "Listening..." : "Mic"}
       </button>
       {busy ? (
         <button type="button" className="stop" onClick={onStop}>
           Stop
         </button>
       ) : (
-        <button type="submit">Send</button>
+        <button type="submit" disabled={listening}>
+          Send
+        </button>
       )}
     </form>
   );

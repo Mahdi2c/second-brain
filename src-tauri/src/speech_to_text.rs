@@ -7,7 +7,7 @@ mod tests;
 
 const STT_URL: &str = "http://127.0.0.1:8081/inference";
 
-/// Must match `SAMPLE_RATE` in recorder.ts, or speech comes back garbled.
+/// Must match `SAMPLE_RATE` in audio/constants.ts, or speech comes back garbled.
 pub const SAMPLE_RATE: u32 = 16_000;
 
 /// Wraps raw samples in a WAV header, because that is all whisper-server reads.
@@ -38,11 +38,31 @@ fn wav(pcm: &[u8]) -> Vec<u8> {
     out
 }
 
-/// What the server heard, from its JSON reply. Whisper pads its output with a
-/// space, which would otherwise indent every dictated line.
+/// Just the words, with Whisper's names for the noises it heard — `[BLANK_AUDIO]`,
+/// `(laughs)` — removed, since a recording that sends itself would otherwise ask
+/// them as questions. Its occasional `*laughs*` spelling is not covered.
+fn words(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut depth = 0usize;
+
+    for c in text.chars() {
+        match c {
+            '[' | '(' => depth += 1,
+            ']' | ')' => depth = depth.saturating_sub(1),
+            _ if depth == 0 => out.push(c),
+            _ => {}
+        }
+    }
+
+    // Whisper pads its output with a space, which would otherwise indent every
+    // dictated line.
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// What the server heard, from its JSON reply.
 fn transcript(json: &str) -> Option<String> {
     let reply: serde_json::Value = serde_json::from_str(json).ok()?;
-    Some(reply["text"].as_str()?.trim().to_owned())
+    Some(words(reply["text"].as_str()?))
 }
 
 /// Sends one recording and returns what was said.

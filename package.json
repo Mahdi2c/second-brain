@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "llm": "..\\inference-engine\\llama-server.exe -m ..\\ai-model\\Ternary-Bonsai-27B-Q2_0.gguf -ngl 99 -c 8192 --parallel 1 --port 8080",
+    "stt": "..\\stt-engine\\whisper-server.exe -m ..\\stt-model\\ggml-large-v3-q5_0.bin --port 8081 -l en"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

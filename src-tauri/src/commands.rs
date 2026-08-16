@@ -2,3 +2,4 @@
 
 pub mod ask;
 pub mod stop;
+pub mod transcribe;

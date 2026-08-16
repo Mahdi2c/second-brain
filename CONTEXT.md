@@ -3,12 +3,62 @@ The main feature of this application is that the AI will have a vault that store
 
 ## Things to implement that are not yet done (Claude dont implement these without being explicity told):
 
-- User should be able to talk to model via the STT model, which will be decided soon
 - AI Speaks back to user
 - UI should be made nicer, will clarify more in future
-- Memory system/how we main memory.
+- Memory system/how we main memory
+
+# Important architecture notes:
+
+- This is strictly for windows currently
+- It should be coded in such a way that in the future the just needs to download the app and nothing else - there will be a package manager that automatically
+  downloads them the ai model and engines, but dependancies like python and what not should be installed. This applications is a contained app, so it should
+  only download things inside its own "project" folder as oppose to wide depedancies like python.
+- This will be shipped to users to use around the world (but we are focusing english speaking only)
+
+## Speech to text
+
+Whisper `large-v3` quantised to q5_0, run by whisper-server on port 8081 —
+its own process, because llama-server already owns 8080. Both have to be
+running for the app to be fully useful.
+
+Speech takes this path:
+
+```
+Mic button  →  webview records 16 kHz mono  →  raw bytes over IPC
+            →  speech_to_text.rs wraps them in a WAV header
+            →  POST /inference  →  the text lands in the composer
+```
+
+The recording is made in the webview rather than in Rust, so the samples have
+to cross the IPC boundary. They go as a raw request body, not as a command
+argument: a few seconds of speech is a hundred thousand samples and JSON would
+send each one as digits in an array.
+
+`SAMPLE_RATE` is declared on both sides and the two must agree. They are not
+checked against each other — a mismatch is not rejected, it is transcribed at
+the wrong speed and comes back as garbled words.
+
+The whole utterance is transcribed at once, after the user stops talking,
+rather than streamed while they speak. Whisper reads half a minute of context
+at a time and is markedly worse on fragments.
+
+Push-to-talk is deliberate: the user marks the start and end, so there is no
+voice activity detection to get wrong, and none of Whisper's habit of
+hallucinating sentences out of silence.
+
+Known gaps, all deliberate: the Mic button reports no errors, so a failure is
+visible only in devtools; nothing filters the `[BLANK_AUDIO]` Whisper emits for
+a recording with no speech in it; and there is no request timeout.
 
 ## How we work
+
+### Keeping the README current
+
+The README lists the models and engines in use, and the commands that start
+them. Claude: whenever a model, engine, port or path changes — a new STT model,
+a different quantisation, a TTS engine arriving, an engine upgrade — update that
+table and the start commands in the same change. A README describing the setup
+we replaced last month is worse than none.
 
 ### Test-driven development
 

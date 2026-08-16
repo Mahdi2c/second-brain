@@ -1,8 +1,8 @@
 To start, all from this directory, each in its own terminal:
 
-npm run llm         the language model, on 8080
-npm run stt         speech to text, on 8081
-npm run tauri dev   the app
+npm run llm
+npm run stt
+npm run tauri dev
 
 Separate terminals because the first two are servers that keep running, and
 their startup logs are where you find out whether the GPU was picked up.
@@ -11,15 +11,22 @@ Both servers have to be up before the app is useful: the model answers on 8080
 and the microphone transcribes on 8081. Without whisper-server the Mic button
 fails silently, since nothing reports the error yet.
 
+OR:
+
+Just run:
+npm run all
+
+Which runs the three above commands for you automatically and does it in separate powershell terminals that open up
+
 ## What is running
 
-| | | Where |
-|---|---|---|
-| Language model | Ternary-Bonsai-27B, Q2_0 (7.1 GB) | `ai-model/` |
-| Inference engine | llama.cpp, CUDA build | `inference-engine/` |
-| Speech to text | Whisper large-v3, q5_0 (1.08 GB) | `stt-model/` |
-| STT engine | whisper.cpp v1.9.2, cuBLAS 12.4 build | `stt-engine/` |
-| Text to speech | not chosen yet | `tts-model/` |
+|                  |                                       | Where               |
+| ---------------- | ------------------------------------- | ------------------- |
+| Language model   | Ternary-Bonsai-27B, Q2_0 (7.1 GB)     | `ai-model/`         |
+| Inference engine | llama.cpp, CUDA build                 | `inference-engine/` |
+| Speech to text   | Whisper large-v3, q5_0 (1.08 GB)      | `stt-model/`        |
+| STT engine       | whisper.cpp v1.9.2, cuBLAS 12.4 build | `stt-engine/`       |
+| Text to speech   | not chosen yet                        | `tts-model/`        |
 
 Both engines run on the GPU (RTX 5070 Ti, 16 GB). The CUDA 12.4 build of
 whisper.cpp works on this card despite predating it.

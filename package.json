@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "llm": "..\\inference-engine\\llama-server.exe -m ..\\ai-model\\Ternary-Bonsai-27B-Q2_0.gguf -ngl 99 -c 8192 --parallel 1 --port 8080",
-    "stt": "..\\stt-engine\\whisper-server.exe -m ..\\stt-model\\ggml-large-v3-q5_0.bin --port 8081 -l en"
+    "stt": "..\\stt-engine\\whisper-server.exe -m ..\\stt-model\\ggml-large-v3-q5_0.bin --port 8081 -l en",
+    "all": "start \"llm\" cmd /k npm run llm && start \"stt\" cmd /k npm run stt && npm run tauri dev"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

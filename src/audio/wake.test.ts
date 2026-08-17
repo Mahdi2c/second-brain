@@ -1,5 +1,3 @@
-/** Tests for `wake.ts`. */
-
 import { describe, expect, it } from "vitest";
 
 import { THRESHOLD, spot } from "./wake";
@@ -8,9 +6,8 @@ const HEARD = THRESHOLD + 0.1;
 const NOT = THRESHOLD - 0.1;
 
 /**
- * One phrase must wake him once. The spotter scores every 80ms, so a phrase
- * scores high across several frames in a row, and a detector that answered
- * each of them would wake him repeatedly for a single "hey winston".
+ * One phrase must wake him once. Scoring every 80ms, a phrase scores high
+ * across several frames in a row.
  */
 describe("spotting the phrase", () => {
   it("wakes when the score crosses the threshold", () => {

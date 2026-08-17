@@ -6,14 +6,7 @@ import { useEars } from "./hooks/useEars";
 import "./App.css";
 
 function App() {
-  const {
-    messages,
-    busy,
-    error: chatError,
-    send,
-    stop,
-    dismissError,
-  } = useChat();
+  const { messages, busy, error: chatError, send, stop, dismissError } = useChat();
   const { state, error: earError, cancel } = useEars(send);
 
   return (

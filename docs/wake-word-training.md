@@ -168,8 +168,8 @@ Marvel's J.A.R.V.I.S. `hey merlin` replaced it and needed over-enunciating —
 soft and liquid throughout, with no hard consonant to catch. `hey winston` was
 chosen for the opposite reason: the *t* and *s* give the model an edge to find.
 
-`WAKE_PHRASE` and `CLASSIFIER` in `src/audio/spotter.ts` are the only two
-places in the app that know what he is called.
+`CLASSIFIER` in `src/audio/spotter.ts` is the only place in the app that knows
+what he is called.
 
 ## Before shipping
 

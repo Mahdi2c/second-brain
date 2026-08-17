@@ -12,7 +12,7 @@ export const HANG = 2;
 export const GATE = 0.3; // speech shorter than this is a cough, not a question
 export const PATIENCE = 3;
 
-/** `waiting`, not `listening` — that names a state of the app, not of one recording. */
+/** `waiting`, not `listening` — that names an app state, not a recording's. */
 export type Verdict = "waiting" | "send" | "nothing";
 
 function rms(block: Float32Array): number {

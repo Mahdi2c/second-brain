@@ -1,5 +1,3 @@
-/** Tests for `silence.ts`. */
-
 import { describe, expect, it } from "vitest";
 
 import { SAMPLE_RATE } from "./constants";

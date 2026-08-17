@@ -35,8 +35,7 @@ export function Composer({ busy, state, onSend, onStop, onCancel }: Props) {
           Stop
         </button>
       ) : listening ? (
-        // The only way out of a room too quiet to end a recording and too
-        // noisy to fall silent.
+        // The only way out of a room too noisy to fall silent.
         <button type="button" className="stop" onClick={onCancel}>
           Cancel
         </button>

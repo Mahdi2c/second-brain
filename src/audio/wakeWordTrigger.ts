@@ -9,18 +9,18 @@
  * sit this low because the model mistakes near-misses so rarely; raise it if
  * the television starts waking him. See `docs/wake-word-training.md`.
  */
-export const THRESHOLD = 0.1;
+export const WAKE_SCORE_THRESHOLD = 0.1;
 
 /** Watches one run of scores. Feed it every score; it answers each time. */
-export function spot() {
-  let woken = false;
+export function wakeDetector() {
+  let wasAbove = false;
 
   return (score: number): boolean => {
     // The rising edge only: a phrase scores high for several frames running,
     // and every frame after the first is the same "hey winston".
-    const heard = score >= THRESHOLD;
-    const wake = heard && !woken;
-    woken = heard;
-    return wake;
+    const isAbove = score >= WAKE_SCORE_THRESHOLD;
+    const justCrossed = isAbove && !wasAbove;
+    wasAbove = isAbove;
+    return justCrossed;
   };
 }

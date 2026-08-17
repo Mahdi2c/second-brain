@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 
-import { open, type State } from "../audio/ears";
+import { openMicrophone, type VoiceState } from "../audio/voiceInput";
 
 /** Opens the microphone once and reports what he is doing with it. */
-export function useEars(said: (text: string) => Promise<void>) {
-  const [state, setState] = useState<State>("asleep");
+export function useVoiceInput(onQuestion: (text: string) => Promise<void>) {
+  const [state, setState] = useState<VoiceState>("waitingForWakeWord");
   const [error, setError] = useState<string | null>(null);
   const cancel = useRef(() => {});
 
-  // `said` is a new function whenever the conversation changes, and the
+  // `onQuestion` is a new function whenever the conversation changes, and the
   // microphone must not be reopened for that.
-  const latest = useRef(said);
-  latest.current = said;
+  const latest = useRef(onQuestion);
+  latest.current = onQuestion;
 
   const opened = useRef(false);
   useEffect(() => {
@@ -22,8 +22,8 @@ export function useEars(said: (text: string) => Promise<void>) {
 
     // Surfaced, because a microphone that will not open leaves him asleep for
     // good and there is no Mic button to press to find that out.
-    open((text) => latest.current(text), setState).then(
-      (bin) => (cancel.current = bin),
+    openMicrophone((text) => latest.current(text), setState).then(
+      (cancelRecording) => (cancel.current = cancelRecording),
       (err) => setError(`the microphone did not open: ${err}`),
     );
   }, []);

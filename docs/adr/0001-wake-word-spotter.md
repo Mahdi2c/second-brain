@@ -4,7 +4,7 @@ Whisper is already running, already transcribes speech, and could have detected
 "hey winston" by reading its own output — so the obvious question a reader will
 ask is why there is a second, much smaller speech model in the app at all. The
 answer is latency, and it only became decisive once we settled that the wake
-phrase is said on its own: `HANG` in `silence.ts` requires two full seconds of
+phrase is said on its own: `SILENCE_ENDS_RECORDING_SECONDS` in `silenceDetection.ts` requires two full seconds of
 silence before an utterance is even considered finished, and only then does it
 go to Whisper. The acknowledgement would land around two and a half seconds
 after you spoke. A spotter answers in about a tenth of that, because it scores
@@ -67,7 +67,7 @@ blanket licence sentence arguably covers its redistributed copy. See
 `docs/wake-word-training.md`.
 
 **Changing the wake phrase means retraining.** This turned out to cost most of
-a day, largely unattended, plus two constants in `spotter.ts` — not the "one
+a day, largely unattended, plus two constants in `wakeWordModel.ts` — not the "one
 run and no code change" first assumed. It has happened twice: `hey jarvis` to
 `hey merlin` to `hey winston`. `docs/wake-word-training.md` is what was learned
 doing it.

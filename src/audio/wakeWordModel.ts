@@ -18,18 +18,18 @@ import { SAMPLE_RATE } from "./constants";
 ort.env.wasm.wasmPaths = { wasm };
 
 /** What the mel-spectrogram graph takes: 80ms at `SAMPLE_RATE`. */
-export const CHUNK = (SAMPLE_RATE * 80) / 1000;
+export const CHUNK_SAMPLES = (SAMPLE_RATE * 80) / 1000;
 
 /**
  * Three hops of the chunk before. 1280 samples alone yield five mel frames and
  * the embedding window strides by eight; the overlap reconciles the two.
  */
-const OVERLAP = 480;
+const OVERLAP_SAMPLES = 480;
 
-const BINS = 32;
-const WINDOW = 76; // mel frames per embedding
-const FRAMES = 16; // embeddings per score
-const DEPTH = 96; // an embedding
+const MEL_BINS = 32;
+const MELS_PER_EMBEDDING = 76;
+const EMBEDDINGS_PER_SCORE = 16;
+const EMBEDDING_SIZE = 96;
 
 /**
  * The only line in the app that knows what he is called — the other two graphs
@@ -37,8 +37,11 @@ const DEPTH = 96; // an embedding
  */
 const CLASSIFIER = "hey_winston.onnx";
 
-/** Loads the chain. `feed` answers null until it has heard enough to score. */
-export async function load(base: string) {
+/**
+ * Loads the chain. `scoreChunk` answers null until it has heard enough to
+ * score.
+ */
+export async function loadWakeWordModel(base: string) {
   const session = (name: string) =>
     ort.InferenceSession.create(base + name).catch(async (err) => {
       // Absent and unloadable send the search to different places.
@@ -60,48 +63,61 @@ export async function load(base: string) {
 
   // By position, not by name: no two classifier exports agree on what they
   // call their input and output.
-  const only = async (of: ort.InferenceSession, tensor: ort.Tensor) =>
-    (await of.run({ [of.inputNames[0]]: tensor }))[of.outputNames[0]].data as Float32Array;
+  const runModel = async (of: ort.InferenceSession, tensor: ort.Tensor) =>
+    (await of.run({ [of.inputNames[0]]: tensor }))[of.outputNames[0]]
+      .data as Float32Array;
 
-  let tail = new Float32Array(OVERLAP);
-  let mels: Float32Array[] = [];
-  let features: Float32Array[] = [];
-
-  const flat = (rows: Float32Array[], width: number) => {
+  const flatten = (rows: Float32Array[], width: number) => {
     const out = new Float32Array(rows.length * width);
     rows.forEach((row, i) => out.set(row, i * width));
     return out;
   };
 
-  async function feed(chunk: Float32Array): Promise<number | null> {
+  let overlapTail = new Float32Array(OVERLAP_SAMPLES);
+  let melFrames: Float32Array[] = [];
+  let embeddings: Float32Array[] = [];
+
+  async function scoreChunk(chunk: Float32Array): Promise<number | null> {
     // Trained on 16-bit PCM: Web Audio's -1..1 floats are not rejected, they
     // are heard as near-silence.
-    const samples = new Float32Array(OVERLAP + CHUNK);
-    samples.set(tail);
-    for (let i = 0; i < CHUNK; i++) samples[OVERLAP + i] = chunk[i] * 0x7fff;
-    tail = samples.slice(-OVERLAP);
-
-    const frames = await only(mel, new ort.Tensor("float32", samples, [1, samples.length]));
-    for (let i = 0; i < frames.length; i += BINS) {
-      // The transform openWakeWord applies to match its TensorFlow original.
-      mels.push(frames.slice(i, i + BINS).map((v) => v / 10 + 2));
+    const samples = new Float32Array(OVERLAP_SAMPLES + CHUNK_SAMPLES);
+    samples.set(overlapTail);
+    for (let i = 0; i < CHUNK_SAMPLES; i++) {
+      samples[OVERLAP_SAMPLES + i] = chunk[i] * 0x7fff;
     }
-    if (mels.length < WINDOW) return null;
-    mels = mels.slice(-WINDOW);
+    overlapTail = samples.slice(-OVERLAP_SAMPLES);
 
-    const window = new ort.Tensor("float32", flat(mels, BINS), [1, WINDOW, BINS, 1]);
-    features.push(await only(embed, window));
-    if (features.length < FRAMES) return null;
-    features = features.slice(-FRAMES);
+    const audio = new ort.Tensor("float32", samples, [1, samples.length]);
+    const newMelFrames = await runModel(mel, audio);
+    for (let i = 0; i < newMelFrames.length; i += MEL_BINS) {
+      // The transform openWakeWord applies to match its TensorFlow original.
+      melFrames.push(
+        newMelFrames.slice(i, i + MEL_BINS).map((v) => v / 10 + 2),
+      );
+    }
+    if (melFrames.length < MELS_PER_EMBEDDING) return null;
+    melFrames = melFrames.slice(-MELS_PER_EMBEDDING);
 
-    const heard = new ort.Tensor("float32", flat(features, DEPTH), [1, FRAMES, DEPTH]);
-    return (await only(classify, heard))[0];
+    const melWindow = new ort.Tensor("float32", flatten(melFrames, MEL_BINS), [
+      1,
+      MELS_PER_EMBEDDING,
+      MEL_BINS,
+      1,
+    ]);
+    embeddings.push(await runModel(embed, melWindow));
+    if (embeddings.length < EMBEDDINGS_PER_SCORE) return null;
+    embeddings = embeddings.slice(-EMBEDDINGS_PER_SCORE);
+
+    const recentEmbeddings = new ort.Tensor(
+      "float32",
+      flatten(embeddings, EMBEDDING_SIZE),
+      [1, EMBEDDINGS_PER_SCORE, EMBEDDING_SIZE],
+    );
+    return (await runModel(classify, recentEmbeddings))[0];
   }
 
-  // Primed, or the first two seconds after launch are deaf while the windows
-  // fill.
-  const silence = new Float32Array(CHUNK);
-  while ((await feed(silence)) === null);
+  const silence = new Float32Array(CHUNK_SAMPLES);
+  while ((await scoreChunk(silence)) === null);
 
-  return { feed };
+  return { scoreChunk };
 }

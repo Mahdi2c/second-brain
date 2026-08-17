@@ -15,7 +15,7 @@ There is no Mic button. Say "hey winston", wait for the chime, then ask — a
 second sound tells you the question was taken. The wake word runs inside the
 app and needs no server of its own.
 
-The model is trained and in `public/spotter/`. How it was made, and how to
+The model is trained and in `public/wake-word-model/`. How it was made, and how to
 measure a replacement, is `docs/wake-word-training.md`.
 
 OR:
@@ -34,7 +34,7 @@ Which runs the three above commands for you automatically and does it in separat
 | Speech to text   | Whisper large-v3, q5_0 (1.08 GB)      | `stt-model/`        |
 | STT engine       | whisper.cpp v1.9.2, cuBLAS 12.4 build | `stt-engine/`       |
 | Text to speech   | not chosen yet                        | `tts-model/`        |
-| Wake word        | self-trained `hey winston` (200k)     | `public/spotter/`   |
+| Wake word        | self-trained `hey winston` (200k)     | `public/wake-word-model/`   |
 | Wake word engine | onnxruntime-web (WASM, in the app)    | bundled             |
 
 Both engines run on the GPU (RTX 5070 Ti, 16 GB). The CUDA 12.4 build of

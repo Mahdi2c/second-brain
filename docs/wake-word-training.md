@@ -1,6 +1,6 @@
 # Training the wake word
 
-The wake word is a file. `public/spotter/hey_winston.onnx` is around a megabyte
+The wake word is a file. `public/wake-word-model/hey_winston.onnx` is around a megabyte
 of numbers that can tell one phrase apart from every other sound, and it ships
 inside the app like an icon does. Every user gets the same one. Nobody trains
 anything on their machine, and nothing about the wake word is personal to a
@@ -8,7 +8,7 @@ voice — the model learns the phrase, not the speaker, so anyone can say it.
 
 You retrain when the phrase changes, and that is the only time.
 
-The one in `public/spotter/` was trained on 200,000 synthetic sayings of
+The one in `public/wake-word-model/` was trained on 200,000 synthetic sayings of
 "hey winston" and 200,000 deliberate near-misses, using openWakeWord's
 pipeline in a Docker container on this machine. **The container and its
 scripts were deleted once it was done**, because they were build tooling for a
@@ -29,7 +29,7 @@ No microphone is involved and you record nothing. The whole run is unattended.
 
 Only the classifier is trained. The two graphs in front of it —
 `melspectrogram.onnx` and `embedding_model.onnx` — are generic feature
-extractors, already in `public/spotter/`, and are not phrase-specific. The
+extractors, already in `public/wake-word-model/`, and are not phrase-specific. The
 second is why training on entirely synthetic speech works at all: Google
 pre-trained it on a great deal of real speech, so the classifier only has to
 learn a decision on top of it.
@@ -147,9 +147,9 @@ Winston hears less at a given threshold and mistakes far less, which is what
 twice the near-misses buys.
 
 **And synthetic numbers are not the last word.** Merlin's were the best of the
-three and it was the one that felt unreliable in a real room. `THRESHOLD` in
-`src/audio/wake.ts` is set from live readings instead — temporarily logging
-what the spotter scores while somebody says the phrase, and putting the number
+three and it was the one that felt unreliable in a real room. `WAKE_SCORE_THRESHOLD` in
+`src/audio/wakeWordTrigger.ts` is set from live readings instead — temporarily logging
+what the model scores while somebody says the phrase, and putting the number
 just above what a quiet room reaches rather than halfway up a person's
 attempts. For merlin those were 0.3 and 0.08 respectively, and the difference
 was the difference between working and not.
@@ -168,7 +168,7 @@ Marvel's J.A.R.V.I.S. `hey merlin` replaced it and needed over-enunciating —
 soft and liquid throughout, with no hard consonant to catch. `hey winston` was
 chosen for the opposite reason: the *t* and *s* give the model an edge to find.
 
-`CLASSIFIER` in `src/audio/spotter.ts` is the only place in the app that knows
+`CLASSIFIER` in `src/audio/wakeWordModel.ts` is the only place in the app that knows
 what he is called.
 
 ## Before shipping

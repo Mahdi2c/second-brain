@@ -5,7 +5,7 @@
  * only throw. It is fetched by URL from `public/`, which Vite serves verbatim.
  */
 registerProcessor(
-  "tap",
+  "microphone-tap",
   class extends AudioWorkletProcessor {
     process([input]) {
       // The block is reused by the next call, so it has to be copied out.

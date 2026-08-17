@@ -24,8 +24,9 @@ running for the app to be fully useful.
 Speech takes this path:
 
 ```
-"hey winston"  →  wake.ogg  →  webview keeps 16 kHz mono  →  silence.ts
-              hears it stop  →  heard.ogg  →  raw bytes over IPC  →
+"hey winston"  →  wake.ogg  →  webview keeps 16 kHz mono  →
+              silenceDetection.ts hears it stop  →  heard.ogg  →
+              raw bytes over IPC  →
               speech_to_text.rs wraps them in a WAV header  →
               POST /inference  →  the model
 ```
@@ -48,8 +49,9 @@ instead.
 The wake phrase marks the start and the silence marks the end. Neither is
 pressed: a moment of speech arms the recording, a pause then ends it and sends
 what was said without asking, and a recording nobody speaks into closes itself
-having sent nothing. How long each of those is lives in `silence.ts`. Cancel is
-the only button, and it only bins — nothing sends by hand.
+having sent nothing. How long each of those is lives in
+`silenceDetection.ts`. Cancel is the only button, and it only bins — nothing
+sends by hand.
 
 Whisper names the noises it hears that are not speech — `[BLANK_AUDIO]`,
 `(laughs)` — and `transcript` strips those names, because a recording that
@@ -69,8 +71,9 @@ it.
 
 Why it is shaped this way is `docs/adr/0001-wake-word-spotter.md`, and how the
 model gets made is `docs/wake-word-training.md`. He is called **Winston** and
-the phrase is "hey winston". Only `spotter.ts` knows that — one constant and one
-filename — because the phrase is the thing most likely to change again.
+the phrase is "hey winston". Only `wakeWordModel.ts` knows that — one constant,
+the classifier's filename — because the phrase is the thing most likely to
+change again.
 
 The classifier is ours, trained on 200,000 synthetic sayings of the phrase and
 200,000 near-misses. The tooling that made it was deleted afterwards, being
@@ -82,23 +85,25 @@ the same paper.
 
 Synthetic clips are not the last word either. The model before this one scored
 best of any on them and was the one that felt unreliable in a real room, so
-`THRESHOLD` is set from live readings rather than from the table.
+`WAKE_SCORE_THRESHOLD` is set from live readings rather than from the table.
 
-The **spotter** is the wake-word detector: a model of about a megabyte whose
-only ability is to score each 80 ms of audio for whether it just heard the
-wake phrase. It cannot transcribe and knows no other words, which is why it
-can run forever where Whisper cannot.
+The **wake-word model** is the detector: about a megabyte whose only ability is
+to score each 80 ms of audio for whether it just heard the wake phrase. It
+cannot transcribe and knows no other words, which is why it can run forever
+where Whisper cannot. It was called the *spotter* until the names were made
+plain; `wakeWordModel.ts` scores the audio and `wakeWordTrigger.ts` decides
+what a score means.
 
-There are three states, and `listening` is not one of the loose senses it has
-been used in until now:
+There are three states, named for what he is doing rather than for how he
+seems:
 
-**Asleep**: the spotter is running and the microphone is open. This is the
-resting state, not an off state.
-**Listening**: the wake phrase has been heard and the words being spoken are
-being kept, for Whisper. Where the speaking has actually started yet is
-`silence.ts`'s business and nobody else's.
-**Busy**: an answer is being produced. He is deaf here — the wake phrase is
-ignored until the answer lands.
+**waitingForWakeWord**: the model is running and the microphone is open. This
+is the resting state, not an off state.
+**recording**: the wake phrase has been heard and the words being spoken are
+being kept, for Whisper. Whether the speaking has actually started yet is
+`silenceDetection.ts`'s business and nobody else's.
+**answering**: an answer is being produced. He is deaf here — the wake phrase
+is ignored until the answer lands.
 
 The distinction under all of it:
 
@@ -107,23 +112,23 @@ written down, nothing crosses IPC. It never stops.
 **Recording** is keeping the samples to send them. It begins at the wake
 phrase and ends at the silence.
 _Avoid_: "listening" for either of these, which is the confusion this
-vocabulary exists to end — `silence.ts`'s verdict of the same name means only
-"the recording continues", and is renamed `waiting` for that reason.
+vocabulary exists to end. It names no state and no verdict — the state is
+`recording`, and `silenceDetection.ts` answers `waiting` while one continues.
 
 The microphone is held from the moment the app opens until it closes, and
 Windows says so for all of it. Nothing detects a phrase it is not hearing;
 there is no version of this that borrows the microphone only when wanted.
 
 He answers with sound, because with no Mic button and no indicator there is
-nothing to look at. `wake.ogg` says he is listening, and recording waits for it
-to finish — otherwise he records his own tone and it counts towards the speech
+nothing to look at. `wake.ogg` says the recording has started, and recording
+waits for it to finish — otherwise he records his own tone and it counts as the
 that arms the recording. `heard.ogg` says the question was taken, which the
 silence ending a recording would otherwise be indistinguishable from a silence
 nobody spoke into. Both are CC0 and neither is a placeholder.
 
-The spotter is three ONNX graphs in a chain and the buffering between them is
-not negotiable — the numbers are in `spotter.ts` with the reason beside each.
-Two of them look like details and are not: the graphs are fed samples in
+The wake-word model is three ONNX graphs in a chain and the buffering between
+them is not negotiable — the numbers are in `wakeWordModel.ts` with the reason
+beside each. Two of them look like details and are not: the graphs are fed in
 16-bit range, because Web Audio's -1..1 floats are heard as near-silence
 rather than refused; and the chain is primed with silence at startup, because
 its two windows need about two seconds of audio before they can score at all.
@@ -136,14 +141,14 @@ The wasm has to be named. Left alone, onnxruntime-web looks for its `.wasm`
 beside its own module — which in development Vite has rewritten into
 `.vite/deps/`, where the file is not. The dev server answers a missing file
 with `index.html` and a **200**, so it fails compiling a web page as
-WebAssembly rather than reporting a 404. `spotter.ts` imports the URL from the
+WebAssembly rather than reporting a 404. `wakeWordModel.ts` imports the URL from the
 subpath the package exports for the purpose and hands it over outright.
 
 Nothing starts audio without a click. An `AudioContext` made with no gesture
 behind it starts suspended, and a chime may simply be refused; both were the
 Mic button's doing before, and both are now handled where they happen.
 
-A rejected promise chain never resumes. The spotter runs in one, so a single
+A rejected promise chain never resumes. The wake-word model runs in one, so a single
 throw would leave him deaf for the session — it catches per score.
 
 ## How we work
@@ -242,6 +247,6 @@ The backend, and any logic that ends up in the frontend. The AI's behaviour and
 the commands the frontend calls are what matter, and a view is still not worth
 testing — but deciding when somebody has stopped talking is not a view, and
 neither is deciding that a run of scores is one wake rather than eight. So
-`silence.ts` and `wake.ts` are pure functions with their tests beside them,
+`silenceDetection.ts` and `wakeWordTrigger.ts` are pure functions with their tests beside them,
 while the microphone, the ONNX chain and the state machine around them are
 left as untested edges. Vitest runs those: `npm test`, from the project root.

@@ -12,7 +12,8 @@ export const HANG = 2;
 export const GATE = 0.3; // speech shorter than this is a cough, not a question
 export const PATIENCE = 3;
 
-export type Verdict = "listening" | "send" | "nothing";
+/** `waiting`, not `listening` — that names a state of the app, not of one recording. */
+export type Verdict = "waiting" | "send" | "nothing";
 
 function rms(block: Float32Array): number {
   let sum = 0;
@@ -39,7 +40,7 @@ export function listen(sampleRate: number) {
 
     // Before the gate the wait is for someone to start rather than to finish,
     // so the same run of silence is measured against two different limits.
-    if (spoken >= gate) return quiet >= hang ? "send" : "listening";
-    return quiet >= patience ? "nothing" : "listening";
+    if (spoken >= gate) return quiet >= hang ? "send" : "waiting";
+    return quiet >= patience ? "nothing" : "waiting";
   };
 }

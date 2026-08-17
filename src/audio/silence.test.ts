@@ -34,19 +34,19 @@ describe("ending a recording", () => {
     expect(feed(watch, QUIET, HANG)).toBe("send");
   });
 
-  it("keeps listening while the silence is shorter than the hang time", () => {
+  it("keeps waiting while the silence is shorter than the hang time", () => {
     const watch = listen(SAMPLE_RATE);
     feed(watch, LOUD, GATE);
-    expect(feed(watch, QUIET, HANG - 0.1)).toBe("listening");
+    expect(feed(watch, QUIET, HANG - 0.1)).toBe("waiting");
   });
 
-  it("keeps listening through a pause in the middle of a sentence", () => {
+  it("keeps waiting through a pause in the middle of a sentence", () => {
     // Two pauses adding up past the hang time, with a word between them.
     const watch = listen(SAMPLE_RATE);
     feed(watch, LOUD, GATE);
     feed(watch, QUIET, HANG - 0.1);
     feed(watch, LOUD, 0.2);
-    expect(feed(watch, QUIET, HANG - 0.1)).toBe("listening");
+    expect(feed(watch, QUIET, HANG - 0.1)).toBe("waiting");
   });
 });
 

@@ -2,16 +2,31 @@ import { Composer } from "./components/Composer";
 import { ErrorBanner } from "./components/ErrorBanner";
 import { MessageList } from "./components/MessageList";
 import { useChat } from "./hooks/useChat";
+import { useEars } from "./hooks/useEars";
 import "./App.css";
 
 function App() {
-  const { messages, busy, error, send, stop, dismissError } = useChat();
+  const {
+    messages,
+    busy,
+    error: chatError,
+    send,
+    stop,
+    dismissError,
+  } = useChat();
+  const { state, error: earError, cancel } = useEars(send);
 
   return (
     <main className="chat">
-      <ErrorBanner message={error} onDismiss={dismissError} />
+      <ErrorBanner message={earError ?? chatError} onDismiss={dismissError} />
       <MessageList messages={messages} />
-      <Composer busy={busy} onSend={send} onStop={stop} />
+      <Composer
+        busy={busy}
+        state={state}
+        onSend={send}
+        onStop={stop}
+        onCancel={cancel}
+      />
     </main>
   );
 }

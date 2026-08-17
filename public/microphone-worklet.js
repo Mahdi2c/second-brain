@@ -1,12 +1,11 @@
 /**
  * Hands every block of samples the microphone produces to the main thread.
  *
- * Runs on the audio thread, which has its own globals — `registerProcessor` does
- * not exist in the main thread, so importing this file would only throw. It is
- * fetched by URL instead, and lives here because `public/` is served verbatim.
+ * Runs on the audio thread and uses its globals, so importing this file would
+ * only throw. It is fetched by URL from `public/`, which Vite serves verbatim.
  */
 registerProcessor(
-  "tap",
+  "microphone-tap",
   class extends AudioWorkletProcessor {
     process([input]) {
       // The block is reused by the next call, so it has to be copied out.
